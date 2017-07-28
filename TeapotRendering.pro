@@ -1,9 +1,3 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2014-11-19T14:51:05
-#
-#-------------------------------------------------
-
 QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
@@ -19,7 +13,13 @@ INCLUDEPATH += $$PWD/Include
 include (../../Banana/BananaCore/BananaCore.pri)
 include (../../Banana/QtAppHelpers/QtAppHelpers.pri)
 include (../../Banana/OpenGLHelpers/OpenGLHelpers.pri)
+
+
+INCLUDEPATH += $$_PRO_FILE_PWD_/tmp
+INCLUDEPATH += D:\GoogleDrive\Programming\References\optix_advanced_samples\src\device_include
+
 include (../../Banana/RayTracing/RayTracing.pri)
+
 
 HEADERS += \
     Include/Controller.h \
