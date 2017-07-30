@@ -18,16 +18,24 @@
 #pragma once
 
 #include "Common.h"
+#include "TeapotRayTracer.h"
 
 #include <Banana/Data/ParticleSystemData.h>
 
 #include <QtAppHelpers/QtAppMacros.h>
 #include <QtAppHelpers/OpenGLWidget.h>
+#include <QtAppHelpers/EnhancedMessageBox.h>
 
-#include <OpenGLHelpers/ShaderProgram.h>
-#include <OpenGLHelpers/OpenGLBuffer.h>
+#include <OpenGLHelpers/Material.h>
+#include <OpenGLHelpers/Lights.h>
+//#include <OpenGLHelpers/ShaderProgram.h>
+//#include <OpenGLHelpers/OpenGLBuffer.h>
 #include <OpenGLHelpers/OpenGLTexture.h>
 #include <OpenGLHelpers/RenderObjects.h>
+
+#include "CUDA/Common.cuh"
+#include "CUDA/Camera.h"
+//#include <sutil/OptiXMesh.h>
 
 #include <map>
 #include <memory>
@@ -39,19 +47,17 @@ class RenderWidget : public OpenGLWidget
 
 public:
     RenderWidget(QWidget* parent = 0);
-    const std::vector<std::shared_ptr<MeshObject> >& getMeshObjs() const;
 
     void setCamera(const glm::vec3& cameraPosition, const glm::vec3& cameraFocus);
-    void setBox(const glm::vec3& boxMin, const glm::vec3& boxMax);
 
 protected:
     virtual void initOpenGL();
-    virtual void resizeOpenGLWindow(int, int) {}
+    virtual void resizeOpenGLWindow(int, int);
     virtual void renderOpenGL();
 
 public slots:
-    void uploadMesh();
-    void updateNumMeshes(int numMeshes);
+//    void uploadMesh();
+//    void updateNumMeshes(int numMeshes);
     void updateLights();
 
     void setSkyBoxTexture(int texIndex);
@@ -68,7 +74,6 @@ signals:
 private:
     ////////////////////////////////////////////////////////////////////////////////
     void initRDataLight();
-    void renderLight();
 
     ////////////////////////////////////////////////////////////////////////////////
     void initRDataSkyBox();
@@ -79,10 +84,6 @@ private:
     void renderFloor();
 
     ////////////////////////////////////////////////////////////////////////////////
-    void initRDataBox();
-    void renderBox();
-
-    ////////////////////////////////////////////////////////////////////////////////
     void initRDataMeshes();
     void renderMeshes();
 
@@ -90,11 +91,19 @@ private:
     int m_NumMeshes = 0;
 
     ////////////////////////////////////////////////////////////////////////////////
-    std::vector<std::shared_ptr<MeshObject> > m_MeshObjs;
-    std::shared_ptr<PointLights>              m_Lights;
+    ////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////
+    void initRayTracer();
+    void renderRayTracingBuffer();
+    ////////////////////////////////////////////////////////////////////////////////
+//    std::vector<std::shared_ptr<MeshObject> > m_MeshObjs;
+//    std::shared_ptr<PointLights>              m_Lights;
 
-    std::unique_ptr<SkyBoxRender>       m_SkyBoxRender       = nullptr;
-    std::unique_ptr<PlaneRender>        m_FloorRender        = nullptr;
-    std::unique_ptr<PointLightRender>   m_LightRender        = nullptr;
-    std::unique_ptr<WireFrameBoxRender> m_WireFrameBoxRender = nullptr;
+//    std::unique_ptr<SkyBoxRender>       m_SkyBoxRender       = nullptr;
+//    std::unique_ptr<PlaneRender>        m_FloorRender        = nullptr;
+//    std::unique_ptr<PointLightRender>   m_LightRender        = nullptr;
+//    std::unique_ptr<WireFrameBoxRender> m_WireFrameBoxRender = nullptr;
+    std::unique_ptr<OpenGLTexture>           m_RenderTexture      = nullptr;
+    std::unique_ptr<ScreenQuadTextureRender> m_ScreenQuadRenderer = nullptr;
+    std::unique_ptr<TeapotRayTracer>         m_RayTracer          = nullptr;
 };

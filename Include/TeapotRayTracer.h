@@ -17,35 +17,30 @@
 
 #pragma once
 
-#include "RenderWidget.h"
-#include "Controller.h"
+#include <RayTracing/RayTracer.h>
 
-#include <QtAppHelpers/OpenGLMainWindow.h>
-#include <QtAppHelpers/BrowsePathWidget.h>
+#include <sutil/OptiXMesh.h>
+#include <sutil/sutil.h>
 
-#include <QEvent>
-#include <memory>
+#include "Common.h"
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-class MainWindow : public OpenGLMainWindow
+class TeapotRayTracer : public RayTracer
 {
-    Q_OBJECT
-
 public:
-    MainWindow(QWidget* parent = 0);
+    TeapotRayTracer() = default;
+    virtual void createOptiXContext(int width, int height) override;
+    virtual void createScene() override;
+    virtual void render() override;
+    virtual void resizeViewport(int, int) override;
+
 
 protected:
-    virtual void instantiateOpenGLWidget() override;
-    virtual bool processKeyPressEvent(QKeyEvent* event) override;
-
-public slots:
-
-private:
-    void setupRenderWidgets();
-    void setupStatusBar();
-    void connectWidgets();
-
-    ////////////////////////////////////////////////////////////////////////////////
-    RenderWidget* m_RenderWidget = nullptr;
-    Controller*   m_Controller   = nullptr;
+    void            createMaterials();
+    optix::Material createDiffuseMaterial(const std::string& ptxFile);
+    optix::Material createGlassMaterial(const std::string& ptxFile);
+    optix::Aabb     createGeometry(const std::vector<std::string>& fileNames, const std::vector<optix::Matrix4x4>& xforms,
+                                   const optix::Material glassMaterial, const optix::Material groundMaterial,
+                                   // output: this is a Group with two GeometryGroup children, for toggling visibility later
+                                   optix::Group& topGroup);
 };

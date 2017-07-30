@@ -15,25 +15,42 @@
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-#include <optix.h>
-#include <optixu/optixu_math_namespace.h>
-#include "Common.cuh"
+#pragma once
+
+#include <optixu/optixu_vector_types.h>
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-rtDeclareVariable(float3, background_light, , ); // horizon color
-rtDeclareVariable(float3, background_dark, , );  // zenith color
-rtDeclareVariable(float3, up, , );               // global up vector
+#if defined(__cplusplus)
+using float3 = optix::float3;
+#endif
 
-rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
-rtDeclareVariable(PerRayData_Radiance, prd_radiance, rtPayload, );
-
-// -----------------------------------------------------------------------------
-
-RT_PROGRAM void miss()
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+struct PerRayData_Radiance
 {
-  const float t = optix::max(optix::dot(ray.direction, up), 0.0f);
-  const float3 result = optix::lerp(background_light, background_dark, t);
+    int          depth;
+    unsigned int seed;
 
-  prd_radiance.radiance = result;
-  prd_radiance.done = true;
-}
+    // shading state
+    bool   done;
+    float3 reflectance;
+    float3 radiance;
+    float3 origin;
+    float3 direction;
+};
+
+struct BasicLight
+{
+    float3 pos;
+    float3 color;
+    int    casts_shadow;
+};
+
+struct DirectionalLight
+{
+    float3 direction;
+    float  radius;
+    float3 v0; // basis vectors for area sampling
+    float3 v1;
+    float3 color;
+    int    casts_shadow;
+};

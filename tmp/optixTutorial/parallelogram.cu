@@ -27,7 +27,6 @@
  */
 
 #include <optix_world.h>
-#include "intersection_refinement.h"
 
 using namespace optix;
 
@@ -37,13 +36,9 @@ rtDeclareVariable(float3, v2, , );
 rtDeclareVariable(float3, anchor, , );
 rtDeclareVariable(int, lgt_instance, , ) = {0};
 
-rtDeclareVariable( float3, back_hit_point, attribute back_hit_point, );
-rtDeclareVariable( float3, front_hit_point, attribute front_hit_point, );
-rtDeclareVariable( float3, texcoord, attribute texcoord, ); 
-rtDeclareVariable( float3, geometric_normal, attribute geometric_normal, ); 
-rtDeclareVariable( float3, shading_normal, attribute shading_normal, ); 
-rtDeclareVariable( float4, geometry_color, attribute geometry_color, );
-
+rtDeclareVariable(float3, texcoord, attribute texcoord, ); 
+rtDeclareVariable(float3, geometric_normal, attribute geometric_normal, ); 
+rtDeclareVariable(float3, shading_normal, attribute shading_normal, ); 
 rtDeclareVariable(int, lgt_idx, attribute lgt_idx, ); 
 rtDeclareVariable(optix::Ray, ray, rtCurrentRay, );
 
@@ -62,13 +57,7 @@ RT_PROGRAM void intersect(int primIdx)
         if( rtPotentialIntersection( t ) ) {
           shading_normal = geometric_normal = n;
           texcoord = make_float3(a1,a2,0);
-          geometry_color = make_float4( 1.0f );
           lgt_idx = lgt_instance;
-
-          refine_and_offset_hitpoint( ray.origin + t*ray.direction, ray.direction,
-              n, anchor,
-              back_hit_point, front_hit_point );
-
           rtReportIntersection( 0 );
         }
       }
