@@ -72,9 +72,6 @@ void TeapotRayTracer::createPrograms()
     bg_up.y += 1.0f;
     bg_up    = optix::normalize(bg_up);
     m_OptiXContext["up"]->setFloat(bg_up.x, bg_up.y, bg_up.z);
-
-    ////////////////////////////////////////////////////////////////////////////////
-    m_OptiXContext->validate();
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -125,6 +122,7 @@ void TeapotRayTracer::createScene()
     std::vector<optix::Matrix4x4> meshXforms;
     const optix::Matrix4x4        xform = optix::Matrix4x4::rotate(-M_PIf / 2.0f, optix::make_float3(0.0f, 1.0f, 0.0f));
 
+#if 0
     for(int i = 0; i < 16; ++i)
     {
         char buff[512];
@@ -132,11 +130,18 @@ void TeapotRayTracer::createScene()
         meshFiles.push_back(std::string(buff));
         meshXforms.push_back(xform);
     }
+#else
+    meshFiles.push_back("D:/GoogleDrive/Programming/References/optix_advanced_samples/src/data/teapot_lid.ply");
+    meshXforms.push_back(xform);
+    meshFiles.push_back("D:/GoogleDrive/Programming/References/optix_advanced_samples/src/data/teapot_body.ply");
+    meshXforms.push_back(xform);
+#endif
 
     ////////////////////////////////////////////////////////////////////////////////
     optix::Material   groundMaterial = createGroundMaterial();
     optix::Material   glassMaterial  = createGlassMaterial();
     const optix::Aabb aabb           = createGeometry(meshFiles, meshXforms, glassMaterial, groundMaterial, m_GeometryGroup);
+
 
     glm::vec3 camPos   = glm::vec3(0.0f, 1.5f * aabb.extent(1), 1.5f * aabb.extent(2));
     glm::vec3 camFocus = glm::vec3(aabb.center().x, aabb.center().y, aabb.center().z);
@@ -147,7 +152,7 @@ void TeapotRayTracer::createScene()
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 optix::Material TeapotRayTracer::createGroundMaterial()
 {
-    std::string    ptxPath(getPtxPath("diffuse.cu"));
+    std::string    ptxPath(getPtxPath("Diffuse.cu"));
     optix::Program ch_program = m_OptiXContext->createProgramFromPTXFile(ptxPath, "closest_hit_radiance");
 
     optix::Material material = m_OptiXContext->createMaterial();
@@ -163,7 +168,7 @@ optix::Material TeapotRayTracer::createGroundMaterial()
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 optix::Material TeapotRayTracer::createGlassMaterial()
 {
-    const std::string ptxPath    = getPtxPath("glass.cu");
+    const std::string ptxPath    = getPtxPath("Glass.cu");
     optix::Program    ch_program = m_OptiXContext->createProgramFromPTXFile(ptxPath, "closest_hit_radiance");
 
     optix::Material material = m_OptiXContext->createMaterial();
@@ -217,7 +222,7 @@ optix::Aabb TeapotRayTracer::createGeometry(const std::vector<std::string>& file
                                             const optix::Material glassMaterial, const optix::Material groundMaterial,
                                             optix::Group& topGroup)
 {
-    const std::string ptxPath = getPtxPath("triangle_mesh.cu");
+    const std::string ptxPath = getPtxPath("TriangleMesh.cu");
 
     topGroup = m_OptiXContext->createGroup();
     topGroup->setAcceleration(m_OptiXContext->createAcceleration("Trbvh"));
@@ -251,12 +256,13 @@ optix::Aabb TeapotRayTracer::createGeometry(const std::vector<std::string>& file
         std::cerr << "Total triangle count: " << num_triangles << std::endl;
     }
 
+
     {
         // Ground plane
         optix::GeometryGroup geometry_group = m_OptiXContext->createGeometryGroup();
         geometry_group->setAcceleration(m_OptiXContext->createAcceleration("NoAccel"));
         topGroup->addChild(geometry_group);
-        const std::string       floor_ptx = getPtxPath("parallelogram_iterative.cu");
+        const std::string       floor_ptx = getPtxPath("ParallelogramIterative.cu");
         optix::GeometryInstance instance  = createOptiXGroundPlane(m_OptiXContext, floor_ptx, aabb, groundMaterial, 3.0f);
         geometry_group->addChild(instance);
     }

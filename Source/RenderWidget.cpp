@@ -28,8 +28,6 @@ void RenderWidget::initOpenGL()
 {
     glCall(glGetBooleanv(GL_FRAMEBUFFER_SRGB_CAPABLE_EXT, &m_bUseSRGB));
 
-    qDebug() << width() << height();
-
     ////////////////////////////////////////////////////////////////////////////////
     // light
     m_Lights = std::make_shared<PointLights>();
@@ -39,8 +37,10 @@ void RenderWidget::initOpenGL()
 
     ////////////////////////////////////////////////////////////////////////////////
     // textures
+    m_RenderTexture = std::make_shared<OpenGLTexture>(GL_TEXTURE_2D);
+    m_RenderTexture->setSimplestTexture();
 //    m_GroundRender = std::make_unique<PlaneRender>(m_Camera, m_Lights, QDir::currentPath() + "/Textures/Floor/", m_UBufferCamData);
-
+    m_ScreenQuadTexRender = std::make_unique<ScreenQuadTextureRender>();
 
     initRayTracer();
 }
@@ -49,7 +49,9 @@ void RenderWidget::initOpenGL()
 void RenderWidget::resizeOpenGLWindow(int width, int height)
 {
     glCall(glViewport(0, 0, width, height));
-    m_RayTracer->resizeViewport(width, height);
+
+    if(m_RayTracer != nullptr)
+        m_RayTracer->resizeViewport(width, height);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -124,6 +126,7 @@ void RenderWidget::initRayTracer()
     m_RayTracer = std::make_unique<TeapotRayTracer>(m_Camera);
 
     m_RayTracer->createOptiXContext(width(), height());
+    m_RayTracer->createPrograms();
     m_RayTracer->createScene();
 }
 
