@@ -20,8 +20,11 @@
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void TeapotRayTracer::createOptiXContext(int width, int height)
 {
-    // Set up context
-    m_OptiXContext = optix::Context::create();
+    RayTracer::createOptiXContext(width, height);
+
+    ////////////////////////////////////////////////////////////////////////////////
+    m_Width  = width;
+    m_Height = height;
     m_OptiXContext->setRayTypeCount(1);
     m_OptiXContext->setEntryPointCount(1);
 
@@ -34,30 +37,33 @@ void TeapotRayTracer::createOptiXContext(int width, int height)
     m_OptiXContext["cutoff_color"]->setFloat(0.2f, 0.2f, 0.2f);
     m_OptiXContext["frame"]->setUint(0u);
     m_OptiXContext["scene_epsilon"]->setFloat(1.e-3f);
+    m_OptiXContext["bad_color"]->setFloat(1.0f, 0.0f, 1.0f);
+    m_OptiXContext["background_light"]->setFloat(1.0f, 1.0f, 1.0f);
+    m_OptiXContext["background_dark"]->setFloat(0.3f, 0.3f, 0.3f);
+}
 
-//    optix::Buffer buffer = sutil::createOutputBuffer(m_OptiXContext, RT_FORMAT_UNSIGNED_BYTE4, width(), height(), use_pbo);
-    optix::Buffer buffer = m_OptiXContext->createBuffer(RT_BUFFER_OUTPUT, RT_FORMAT_UNSIGNED_BYTE4, width, height);
-    m_OptiXContext["output_buffer"]->set(buffer);
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::createPrograms()
+{
+    Q_ASSERT(m_OptiXContext != 0);
 
+    ////////////////////////////////////////////////////////////////////////////////
     // Accumulation buffer
-    optix::Buffer accum_buffer = m_OptiXContext->createBuffer(RT_BUFFER_INPUT_OUTPUT | RT_BUFFER_GPU_LOCAL, RT_FORMAT_FLOAT4, width, height);
+    optix::Buffer accum_buffer = m_OptiXContext->createBuffer(RT_BUFFER_INPUT_OUTPUT | RT_BUFFER_GPU_LOCAL, RT_FORMAT_FLOAT4, m_Width, m_Height);
     m_OptiXContext["accum_buffer"]->set(accum_buffer);
 
     // Ray generation program
-    std::string    ptx_path(getPtxPath("path_trace_camera.cu"));
-    optix::Program ray_gen_program = m_OptiXContext->createProgramFromPTXFile(ptx_path, "pinhole_camera");
+    std::string    ptxPath(getPtxPath("PathTraceCamera.cu"));
+    optix::Program ray_gen_program = m_OptiXContext->createProgramFromPTXFile(ptxPath, "pinhole_camera");
     m_OptiXContext->setRayGenerationProgram(0, ray_gen_program);
 
     // Exception program
-    optix::Program exception_program = m_OptiXContext->createProgramFromPTXFile(ptx_path, "exception");
+    optix::Program exception_program = m_OptiXContext->createProgramFromPTXFile(ptxPath, "exception");
     m_OptiXContext->setExceptionProgram(0, exception_program);
-    m_OptiXContext["bad_color"]->setFloat(1.0f, 0.0f, 1.0f);
 
     // Miss program
-    ptx_path = getPtxPath("gradientbg.cu");
-    m_OptiXContext->setMissProgram(0, m_OptiXContext->createProgramFromPTXFile(ptx_path, "miss"));
-    m_OptiXContext["background_light"]->setFloat(1.0f, 1.0f, 1.0f);
-    m_OptiXContext["background_dark"]->setFloat(0.3f, 0.3f, 0.3f);
+    ptxPath = getPtxPath("GradientBG.cu");
+    m_OptiXContext->setMissProgram(0, m_OptiXContext->createProgramFromPTXFile(ptxPath, "miss"));
 
     // align background's up direction with camera's look direction
     optix::float3 bg_up = optix::normalize(optix::make_float3(0.0f, -1.0f, -1.0f));
@@ -66,13 +72,9 @@ void TeapotRayTracer::createOptiXContext(int width, int height)
     bg_up.y += 1.0f;
     bg_up    = optix::normalize(bg_up);
     m_OptiXContext["up"]->setFloat(bg_up.x, bg_up.y, bg_up.z);
-}
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-void TeapotRayTracer::createMaterials()
-{
-    createDiffuseMaterial("diffuse.cu");
-    createGlassMaterial("glass.cu");
+    ////////////////////////////////////////////////////////////////////////////////
+    m_OptiXContext->validate();
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -80,81 +82,73 @@ void TeapotRayTracer::resizeViewport(int width, int height)
 {
     RayTracer::resizeViewport(width, height);
     resizeBuffer(m_OptiXContext["accum_buffer"]->getBuffer(), width, height);
+
+    // need this?
+    m_Width  = width;
+    m_Height = height;
 }
+
+void TeapotRayTracer::setGroundTexture(const std::shared_ptr<OpenGLTexture>& texture)
+{}
+
+void TeapotRayTracer::setSkyTexture(const std::shared_ptr<OpenGLTexture>& texture)
+{}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::setLights(std::shared_ptr<PointLights>& lights)
+{}
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void TeapotRayTracer::render()
 {
-    // Let imgui process the mouse first
-    if(!io.WantCaptureMouse)
+//    m_OptiXContext["unit_transmittance"]->setFloat(t.x, t.y, t.z);
+//    m_OptiXContext["max_depth"]->setInt(max_depth);
+    if(m_bRenderGround)
     {
-        double x, y;
-        glfwGetCursorPos(window, &x, &y);
-
-        if(camera.process_mouse((float)x, (float)y, ImGui::IsMouseDown(0), ImGui::IsMouseDown(1), ImGui::IsMouseDown(2)))
-        {
-            m_FrameNumber = 0;
-        }
-    }
-    m_OptiXContext["unit_transmittance"]->setFloat(t.x, t.y, t.z);
-    m_OptiXContext["max_depth"]->setInt(max_depth);
-    if(draw_ground)
-    {
-        m_OptiXContext["top_object"]->set(top_group);
+        m_OptiXContext["top_object"]->set(m_GeometryGroup);
     }
     else
     {
         // assume group has two children: mesh and ground
-        optix::GeometryGroup geomgroup = top_group->getChild<GeometryGroup>(0);
-        m_OptiXContext["top_object"]->set(geomgroup);
+        optix::GeometryGroup geomGroup = m_GeometryGroup->getChild<optix::GeometryGroup>(0);
+        m_OptiXContext["top_object"]->set(geomGroup);
     }
 
     m_OptiXContext["frame"]->setUint(m_FrameNumber++);
-    m_OptiXContext->launch(0, camera.width(), camera.height());
+    m_OptiXContext->launch(0, m_Width, m_Height);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void TeapotRayTracer::createScene()
 {
-    std::vector<std::string>      mesh_files;
-    std::vector<optix::Matrix4x4> mesh_xforms;
-    const optix::Matrix4x4        xform = optix::Matrix4x4::rotate(-M_PIf / 2.0f, make_float3(0.0f, 1.0f, 0.0f));
+    std::vector<std::string>      meshFiles;
+    std::vector<optix::Matrix4x4> meshXforms;
+    const optix::Matrix4x4        xform = optix::Matrix4x4::rotate(-M_PIf / 2.0f, optix::make_float3(0.0f, 1.0f, 0.0f));
 
     for(int i = 0; i < 16; ++i)
     {
         char buff[512];
         sprintf_s(buff, "C:/Users/Nghia/Downloads/dragon/models/Mesh%03d.obj", i);
-        mesh_files.push_back(std::string(buff));
-        mesh_xforms.push_back(xform);
+        meshFiles.push_back(std::string(buff));
+        meshXforms.push_back(xform);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////
+    optix::Material   groundMaterial = createGroundMaterial();
+    optix::Material   glassMaterial  = createGlassMaterial();
+    const optix::Aabb aabb           = createGeometry(meshFiles, meshXforms, glassMaterial, groundMaterial, m_GeometryGroup);
 
-
-
-
-    optix::Group      top_group;
-    const optix::Aabb aabb = createGeometry(mesh_files, mesh_xforms, glass_material, ground_material, top_group);
-
-    // Note: lighting comes from miss program
-
-    m_OptiXContext->validate();
-
-
-
-    const optix::float3 camera_eye(optix::make_float3(0.0f, 1.5f * aabb.extent(1), 1.5f * aabb.extent(2)));
-    const optix::float3 camera_lookat(aabb.center());
-    const optix::float3 camera_up(optix::make_float3(0.0f, 1.0f, 0.0f));
-    sutil::Camera       camera(WIDTH, HEIGHT,
-                               &camera_eye.x, &camera_lookat.x, &camera_up.x,
-                               context["eye"], context["U"], context["V"], context["W"]);
-
-    glfwRun(window, camera, top_group);
+    glm::vec3 camPos   = glm::vec3(0.0f, 1.5f * aabb.extent(1), 1.5f * aabb.extent(2));
+    glm::vec3 camFocus = glm::vec3(aabb.center().x, aabb.center().y, aabb.center().z);
+    glm::vec3 camUp    = glm::vec3(0.0f, 1.0f, 0.0f);
+    m_Camera->setDefaultCamera(camPos, camFocus, camUp);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-optix::Material TeapotRayTracer::createDiffuseMaterial(const std::string& ptxFile)
+optix::Material TeapotRayTracer::createGroundMaterial()
 {
-    optix::Program ch_program = m_OptiXContext->createProgramFromPTXFile(ptxFile, "closest_hit_radiance");
+    std::string    ptxPath(getPtxPath("diffuse.cu"));
+    optix::Program ch_program = m_OptiXContext->createProgramFromPTXFile(ptxPath, "closest_hit_radiance");
 
     optix::Material material = m_OptiXContext->createMaterial();
     material->setClosestHitProgram(0, ch_program);
@@ -167,10 +161,10 @@ optix::Material TeapotRayTracer::createDiffuseMaterial(const std::string& ptxFil
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-optix::Material TeapotRayTracer::createGlassMaterial(const std::string& ptxFile)
+optix::Material TeapotRayTracer::createGlassMaterial()
 {
-    const std::string ptx_path   = getPtxPath("glass.cu");
-    optix::Program    ch_program = m_OptiXContext->createProgramFromPTXFile(ptx_path, "closest_hit_radiance");
+    const std::string ptxPath    = getPtxPath("glass.cu");
+    optix::Program    ch_program = m_OptiXContext->createProgramFromPTXFile(ptxPath, "closest_hit_radiance");
 
     optix::Material material = m_OptiXContext->createMaterial();
     material->setClosestHitProgram(0, ch_program);
@@ -223,7 +217,7 @@ optix::Aabb TeapotRayTracer::createGeometry(const std::vector<std::string>& file
                                             const optix::Material glassMaterial, const optix::Material groundMaterial,
                                             optix::Group& topGroup)
 {
-    const std::string ptx_path = getPtxPath("triangle_mesh.cu");
+    const std::string ptxPath = getPtxPath("triangle_mesh.cu");
 
     topGroup = m_OptiXContext->createGroup();
     topGroup->setAcceleration(m_OptiXContext->createAcceleration("Trbvh"));
@@ -242,8 +236,8 @@ optix::Aabb TeapotRayTracer::createGeometry(const std::vector<std::string>& file
             mesh.context = m_OptiXContext;
 
             // override defaults
-            mesh.intersection = m_OptiXContext->createProgramFromPTXFile(ptx_path, "mesh_intersect_refine");
-            mesh.bounds       = m_OptiXContext->createProgramFromPTXFile(ptx_path, "mesh_bounds");
+            mesh.intersection = m_OptiXContext->createProgramFromPTXFile(ptxPath, "mesh_intersect_refine");
+            mesh.bounds       = m_OptiXContext->createProgramFromPTXFile(ptxPath, "mesh_bounds");
             mesh.material     = glassMaterial;
 
             loadMesh(fileNames[i], mesh, xforms[i]);

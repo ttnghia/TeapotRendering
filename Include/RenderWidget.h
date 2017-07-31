@@ -48,18 +48,13 @@ class RenderWidget : public OpenGLWidget
 public:
     RenderWidget(QWidget* parent = 0);
 
-    void setCamera(const glm::vec3& cameraPosition, const glm::vec3& cameraFocus);
-
 protected:
     virtual void initOpenGL();
     virtual void resizeOpenGLWindow(int, int);
     virtual void renderOpenGL();
 
 public slots:
-//    void uploadMesh();
-//    void updateNumMeshes(int numMeshes);
     void updateLights();
-
     void setSkyBoxTexture(int texIndex);
     void setFloorTexture(int texIndex);
     void setFloorSize(int size);
@@ -72,38 +67,20 @@ signals:
     void lightsObjChanged(const std::shared_ptr<PointLights>& lights);
 
 private:
-    ////////////////////////////////////////////////////////////////////////////////
-    void initRDataLight();
-
-    ////////////////////////////////////////////////////////////////////////////////
-    void initRDataSkyBox();
-    void renderSkyBox();
-
-    ////////////////////////////////////////////////////////////////////////////////
-    void initRDataFloor();
-    void renderFloor();
-
-    ////////////////////////////////////////////////////////////////////////////////
-    void initRDataMeshes();
-    void renderMeshes();
-
-    ////////////////////////////////////////////////////////////////////////////////
-    int m_NumMeshes = 0;
-
-    ////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////
     void initRayTracer();
     void renderRayTracingBuffer();
+
     ////////////////////////////////////////////////////////////////////////////////
-//    std::vector<std::shared_ptr<MeshObject> > m_MeshObjs;
-//    std::shared_ptr<PointLights>              m_Lights;
+    GLboolean                    m_bUseSRGB = GL_FALSE;
+    std::shared_ptr<PointLights> m_Lights   = nullptr;
+//    std::vector<std::shared_ptr<OpenGLTexture> > m_GroundTex;
+//    std::vector<std::shared_ptr<OpenGLTexture> > m_SkyTex;
 
 //    std::unique_ptr<SkyBoxRender>       m_SkyBoxRender       = nullptr;
 //    std::unique_ptr<PlaneRender>        m_FloorRender        = nullptr;
 //    std::unique_ptr<PointLightRender>   m_LightRender        = nullptr;
 //    std::unique_ptr<WireFrameBoxRender> m_WireFrameBoxRender = nullptr;
-    std::unique_ptr<OpenGLTexture>           m_RenderTexture      = nullptr;
-    std::unique_ptr<ScreenQuadTextureRender> m_ScreenQuadRenderer = nullptr;
-    std::unique_ptr<TeapotRayTracer>         m_RayTracer          = nullptr;
+    std::shared_ptr<OpenGLTexture>           m_RenderTexture       = nullptr;
+    std::unique_ptr<ScreenQuadTextureRender> m_ScreenQuadTexRender = nullptr;
+    std::unique_ptr<TeapotRayTracer>         m_RayTracer           = nullptr;
 };

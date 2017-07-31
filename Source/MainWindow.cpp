@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget* parent) : OpenGLMainWindow(parent)
 
     setWindowTitle("Real-time Teapot Rendering by OptiX");
     setFocusPolicy(Qt::StrongFocus);
-    showFPS(false);
+    showFPS(true);
     showCameraPosition(false);
 }
 
