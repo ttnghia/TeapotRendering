@@ -128,6 +128,7 @@ void RenderWidget::initRayTracer()
     m_RayTracer->createOptiXContext(width(), height());
     m_RayTracer->createPrograms();
     m_RayTracer->createScene();
+    m_RayTracer->validateContext();
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

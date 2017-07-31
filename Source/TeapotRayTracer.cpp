@@ -98,6 +98,7 @@ void TeapotRayTracer::setLights(std::shared_ptr<PointLights>& lights)
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void TeapotRayTracer::render()
 {
+    updateCamera();
 //    m_OptiXContext["unit_transmittance"]->setFloat(t.x, t.y, t.z);
 //    m_OptiXContext["max_depth"]->setInt(max_depth);
     if(m_bRenderGround)
