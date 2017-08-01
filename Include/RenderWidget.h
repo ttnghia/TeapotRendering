@@ -54,26 +54,32 @@ protected:
     virtual void renderOpenGL();
 
 public slots:
+    void resetCamera();
     void updateLights();
     void setSkyBoxTexture(int texIndex);
     void setFloorTexture(int texIndex);
     void setFloorSize(int size);
     void setFloorExposure(int exposure);
     void setMeshMaterial(const Material::MaterialData& material, int meshID);
-
     void reloadTextures();
+    void saveRenderImage();
 
 signals:
     void lightsObjChanged(const std::shared_ptr<PointLights>& lights);
 
 private:
-    void initRayTracer();
-    void renderRayTracingBuffer();
+    void    initRayTracer();
+    void    renderRayTracingBuffer();
+    void    initCaptureDir();
+    int     getLastCaptureIdx();
+    QString getCaptureFilePath(int frame);
 
     ////////////////////////////////////////////////////////////////////////////////
     GLboolean                    m_bUseSRGB = GL_FALSE;
     std::shared_ptr<PointLights> m_Lights   = nullptr;
-//    std::vector<std::shared_ptr<OpenGLTexture> > m_GroundTex;
+
+    QStringList m_SkyTexFile;
+    QStringList m_GroundTexFile;
 //    std::vector<std::shared_ptr<OpenGLTexture> > m_SkyTex;
 
 //    std::unique_ptr<SkyBoxRender>       m_SkyBoxRender       = nullptr;

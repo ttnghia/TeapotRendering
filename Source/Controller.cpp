@@ -49,7 +49,7 @@ void Controller::setupGUI()
 
     ////////////////////////////////////////////////////////////////////////////////
     //    setLayout(controlLayout);
-    setFixedWidth(300);
+    setFixedWidth(320);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -60,7 +60,7 @@ void Controller::loadTextures()
     int currentSkyTexID = m_cbSkyTexture->getComboBox()->currentIndex();
     m_cbSkyTexture->getComboBox()->clear();
     m_cbSkyTexture->getComboBox()->addItem("None");
-    QStringList skyTexFolders = getTextureFolders("Sky");
+    QStringList skyTexFolders = getTextureFiles("Sky");
 
     foreach(QString tex, skyTexFolders)
     {
@@ -71,7 +71,7 @@ void Controller::loadTextures()
 
     ////////////////////////////////////////////////////////////////////////////////
     // floor textures
-    int currentFloorTexID = m_cbFloorTexture->getComboBox()->currentIndex();
+//    int currentFloorTexID = m_cbFloorTexture->getComboBox()->currentIndex();
     m_cbFloorTexture->getComboBox()->clear();
     QStringList floorTexFolders = getTextureFiles("Floor");
     m_cbFloorTexture->getComboBox()->addItem("None");
@@ -81,7 +81,8 @@ void Controller::loadTextures()
         m_cbFloorTexture->getComboBox()->addItem(tex);
     }
 
-    m_cbFloorTexture->getComboBox()->setCurrentIndex(currentFloorTexID > 0 ? currentFloorTexID : 0);
+    m_cbFloorTexture->setCurrentIndex(1);
+//    m_cbFloorTexture->setCurrentIndex(currentFloorTexID > 0 ? currentFloorTexID : 0);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -134,7 +135,8 @@ void Controller::setupTextureControllers(QBoxLayout* ctrLayout)
 void Controller::setupMaterialControllers(QBoxLayout* ctrLayout)
 {
     m_msMeshMaterial = new MaterialSelector;
-    m_msMeshMaterial->setMaterial(DEFAULT_MESH_MATERIAL);
+    m_msMeshMaterial->setCustomMaterial(DEFAULT_GLASS_MATERIAL);
+    m_msMeshMaterial->setDefaultCustomMaterial(true);
 
     m_cbMeshMaterialID = new QComboBox;
 
@@ -143,13 +145,13 @@ void Controller::setupMaterialControllers(QBoxLayout* ctrLayout)
         m_cbMeshMaterialID->addItem(QString("%1").arg(i));
     }
 
-    QHBoxLayout* meshMaterialSelectorLayout = new QHBoxLayout;
-    meshMaterialSelectorLayout->addWidget(m_cbMeshMaterialID);
-    meshMaterialSelectorLayout->addLayout(m_msMeshMaterial->getLayout());
+    QGridLayout* meshMaterialSelectorLayout = new QGridLayout;
+    meshMaterialSelectorLayout->addWidget(m_cbMeshMaterialID, 0, 0, 1, 1);
+    meshMaterialSelectorLayout->addLayout(m_msMeshMaterial->getLayout(), 0, 1, 1, 4);
 
     QGridLayout* meshMaterialLayout = new QGridLayout;
     meshMaterialLayout->addWidget(new QLabel("Mesh: "), 0, 0, Qt::AlignRight);
-    meshMaterialLayout->addLayout(meshMaterialSelectorLayout, 0, 1, 1, 2);
+    meshMaterialLayout->addLayout(meshMaterialSelectorLayout, 0, 1, 1, 5);
 
     QGroupBox* grMeshMaterial = new QGroupBox("Material");
     grMeshMaterial->setLayout(meshMaterialLayout);
@@ -159,19 +161,14 @@ void Controller::setupMaterialControllers(QBoxLayout* ctrLayout)
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void Controller::setupButtons(QBoxLayout* ctrLayout)
 {
-    m_btnPause = new QPushButton(QString("Pause"));
-    m_btnPause->setCheckable(true);
-    ctrLayout->addWidget(m_btnPause);
-
-    ////////////////////////////////////////////////////////////////////////////////
-    m_btnReloadTextures = new QPushButton("Reload Textures");
-    ctrLayout->addWidget(m_btnReloadTextures);
-
-    ////////////////////////////////////////////////////////////////////////////////
     m_btnResetCamera = new QPushButton("Reset Camera");
     ctrLayout->addWidget(m_btnResetCamera);
 
     ////////////////////////////////////////////////////////////////////////////////
     m_btnExportImage = new QPushButton("Export Image");
     ctrLayout->addWidget(m_btnExportImage);
+
+    ////////////////////////////////////////////////////////////////////////////////
+    m_btnReloadTextures = new QPushButton("Reload Textures");
+    ctrLayout->addWidget(m_btnReloadTextures);
 }

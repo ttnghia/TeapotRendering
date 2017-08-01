@@ -38,11 +38,13 @@ public:
 
     void setRenderGround(bool bGround) { m_bRenderGround = bGround; }
     void setRenderSky(bool bSky) { m_bRenderSky = bSky; }
-    void setGroundTexture(const std::shared_ptr<OpenGLTexture>& texture);
-    void setSkyTexture(const std::shared_ptr<OpenGLTexture>& texture);
+    void setGroundTexture(const QString& textureFile);
+    void setSkyTexture(const QString& textureFile);
     void setLights(std::shared_ptr<PointLights>& lights);
+    void setGlassMaterial(const glm::vec3& transmittance);
 
 protected:
+    std::string     getPtxPath(const char* cudaFile);
     optix::Material createGroundMaterial();
     optix::Material createGlassMaterial();
     optix::Aabb     createGeometry(const std::vector<std::string>& fileNames, const std::vector<optix::Matrix4x4>& xforms,

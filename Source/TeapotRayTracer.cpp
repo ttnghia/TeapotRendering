@@ -64,6 +64,8 @@ void TeapotRayTracer::createPrograms()
     // Miss program
     ptxPath = getPtxPath("GradientBG.cu");
     m_OptiXContext->setMissProgram(0, m_OptiXContext->createProgramFromPTXFile(ptxPath, "miss"));
+    m_OptiXContext["envmap"]->setTextureSampler(getDummyTexSampler());
+    m_OptiXContext["has_envmap"]->setInt(0);
 
     // align background's up direction with camera's look direction
     optix::float3 bg_up = optix::normalize(optix::make_float3(0.0f, -1.0f, -1.0f));
@@ -85,25 +87,10 @@ void TeapotRayTracer::resizeViewport(int width, int height)
     m_Height = height;
 }
 
-void TeapotRayTracer::setGroundTexture(const std::shared_ptr<OpenGLTexture>& texture)
-{}
-
-void TeapotRayTracer::setSkyTexture(const std::shared_ptr<OpenGLTexture>& texture)
-{}
-
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-void TeapotRayTracer::setLights(std::shared_ptr<PointLights>& lights)
-{}
-
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-void TeapotRayTracer::render()
+void TeapotRayTracer::setGroundTexture(const QString& textureFile)
 {
-    if(updateCamera())
-        m_FrameNumber = 0;
-
-    //    m_OptiXContext["unit_transmittance"]->setFloat(t.x, t.y, t.z);
-//    m_OptiXContext["max_depth"]->setInt(max_depth);
-    if(m_bRenderGround)
+    if(m_bRenderGround && !textureFile.isEmpty())
     {
         m_OptiXContext["top_object"]->set(m_GeometryGroup);
     }
@@ -113,6 +100,60 @@ void TeapotRayTracer::render()
         optix::GeometryGroup geomGroup = m_GeometryGroup->getChild<optix::GeometryGroup>(0);
         m_OptiXContext["top_object"]->set(geomGroup);
     }
+
+
+    auto material = m_Materials["ground_material"];
+    Q_ASSERT(material != 0);
+//    const QString full_path = QString::fromStdString(sutil::samplesDir()) + "/data/CedarCity.hdr";
+
+//    const QString full_path = "D:/Programming/QtApps/TeapotRendering/Textures/Floor/blue_marble.png";
+//    const std::string texture_filename = full_path;
+
+
+//    material["Kd_map"]->setTextureSampler(sutil::loadTexture(m_OptiXContext, texture_filename, optix::make_float3(1.0f)));
+
+
+
+    material["Kd_map"]->setTextureSampler(createTexSampler(textureFile.toStdString()));
+    material["Kd_map_scale"]->setFloat(optix::make_float2(0.05f, 0.05f));
+
+    m_FrameNumber = 0;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::setSkyTexture(const QString& textureFile)
+{
+    if(textureFile.isEmpty())
+    {
+        m_OptiXContext["has_envmap"]->setInt(0);
+        return;
+    }
+
+    const optix::float3 defaultColor = optix::make_float3(0.8f, 0.88f, 0.97f);
+    m_OptiXContext["envmap"]->setTextureSampler(sutil::loadTexture(m_OptiXContext, textureFile.toStdString(), defaultColor));
+    m_OptiXContext["has_envmap"]->setInt(1);
+    m_FrameNumber = 0;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::setLights(std::shared_ptr<PointLights>& lights)
+{}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::setGlassMaterial(const glm::vec3& transmittance)
+{
+    m_OptiXContext["unit_transmittance"]->setFloat(transmittance.x, transmittance.y, transmittance.z);
+    m_FrameNumber = 0;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::render()
+{
+    if(updateCamera())
+        m_FrameNumber = 0;
+
+    //    m_OptiXContext["unit_transmittance"]->setFloat(t.x, t.y, t.z);
+//    m_OptiXContext["max_depth"]->setInt(max_depth);
 
     m_OptiXContext["frame"]->setUint(m_FrameNumber++);
     m_OptiXContext->launch(0, m_Width, m_Height);
@@ -145,11 +186,17 @@ void TeapotRayTracer::createScene()
     optix::Material   glassMaterial  = createGlassMaterial();
     const optix::Aabb aabb           = createGeometry(meshFiles, meshXforms, glassMaterial, groundMaterial, m_GeometryGroup);
 
-
     glm::vec3 camPos   = glm::vec3(0.0f, 1.5f * aabb.extent(1), 1.5f * aabb.extent(2));
     glm::vec3 camFocus = glm::vec3(aabb.center().x, aabb.center().y, aabb.center().z);
     glm::vec3 camUp    = glm::vec3(0.0f, 1.0f, 0.0f);
     m_Camera->setDefaultCamera(camPos, camFocus, camUp);
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+std::string TeapotRayTracer::getPtxPath(const char* cudaFile)
+{
+    QString PTXFile = QDir::currentPath() + "/PTX/" + cudaFile + ".ptx";;
+    return PTXFile.toStdString();
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -163,7 +210,9 @@ optix::Material TeapotRayTracer::createGroundMaterial()
 
     const std::string texture_filename = std::string(sutil::samplesDir()) + "/data/grid.ppm";
     material["Kd_map"]->setTextureSampler(sutil::loadTexture(m_OptiXContext, texture_filename, optix::make_float3(1.0f)));
+
     material["Kd_map_scale"]->setFloat(optix::make_float2(0.05f, 0.05f));
+    m_Materials["ground_material"] = material;
 
     return material;
 }
@@ -187,6 +236,7 @@ optix::Material TeapotRayTracer::createGlassMaterial()
     // Set this on the global context so it's easy to change in the gui
     const optix::float3 transmittance = DEFAULT_GLASS_TRANSMITTANCE;
     m_OptiXContext["unit_transmittance"]->setFloat(transmittance.x, transmittance.y, transmittance.z);
+    m_Materials["glass_material"] = material;
 
     return material;
 }

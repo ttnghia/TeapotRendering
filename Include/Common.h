@@ -18,19 +18,20 @@
 #pragma once
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-#define DEFAULT_CAMERA_POSITION glm::vec3(-4.0f, 4.0f, -3.0f)
-#define DEFAULT_CAMERA_FOCUS    glm::vec3(0, 0, 0)
-
-#define DEFAULT_MESH_MATERIAL   Material::MT_Brass
-
-#define SHADOWMAP_TEXTURE_SIZE  1024
-#define MAX_NUM_MESHES          8
-
-
-
-
 #define DEFAULT_GLASS_TRANSMITTANCE optix::make_float3(1.0f, 0.63f, 0.3f);
-#define DEFAULT_MAX_DEPTH           10
+#define DEFAULT_GLASS_MATERIAL              \
+    {                                       \
+        glm::vec4(0.2 * 0.2),               \
+        glm::vec4(1.0f, 0.63f, 0.3f, 1.00), \
+        glm::vec4(1),                       \
+        250.0,                              \
+        std::string("GlassMaterial")        \
+    }
+
+
+#define SHADOWMAP_TEXTURE_SIZE 1024
+#define MAX_NUM_MESHES         8
+#define DEFAULT_MAX_DEPTH      10
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -48,6 +49,8 @@
 #include <QStringList>
 #include <QString>
 #include <QDir>
+#include <QFile>
+
 ////////////////////////////////////////////////////////////////////////////////
 inline QStringList getTextureFolders(QString texType)
 {
@@ -65,15 +68,19 @@ inline QStringList getTextureFiles(QString texType)
     return dataDir.entryList();
 }
 
-inline std::string getPtxPath(const QString& cudaFile)
+inline QStringList getTextureFilePaths(QString texType)
 {
-    QString PTXFile = QDir::currentPath() + "/PTX/" + cudaFile + ".ptx";;
-    return PTXFile.toStdString();
-}
+    QDir dataDir(QDir::currentPath() + "/Textures/" + texType);
+    dataDir.setFilter(QDir::NoDotAndDotDot | QDir::Files);
 
-inline QString getCapturePath()
-{
-    return QDir::currentPath() + "/Capture/";
+    QStringList list = dataDir.entryList();
+
+    for(QString& s : list)
+    {
+        s = dataDir.absoluteFilePath(s);
+    }
+
+    return list;
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

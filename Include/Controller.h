@@ -56,8 +56,7 @@ private:
     QComboBox*        m_cbMeshMaterialID;
     PointLightEditor* m_LightEditor;
 
-    QPushButton* m_btnPause;
-    QPushButton* m_btnReloadTextures;
     QPushButton* m_btnResetCamera;
     QPushButton* m_btnExportImage;
+    QPushButton* m_btnReloadTextures;
 };

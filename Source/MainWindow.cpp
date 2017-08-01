@@ -56,12 +56,8 @@ bool MainWindow::processKeyPressEvent(QKeyEvent* event)
 //            m_OutputPath->browse();
             return true;
 
-        //    case Qt::Key_C:
-        //        renderer->resetCameraPosition();
-
-        case Qt::Key_Space:
-            m_Controller->m_btnPause->click();
-            return true;
+        case Qt::Key_R:
+            m_RenderWidget->resetCamera();
 
         ////////////////////////////////////////////////////////////////////////////////
         default:
@@ -113,9 +109,10 @@ void MainWindow::connectWidgets()
 
     ////////////////////////////////////////////////////////////////////////////////
     // buttons
+    connect(m_Controller->m_btnResetCamera,    SIGNAL(clicked(bool)), m_RenderWidget, SLOT(resetCamera()));
     connect(m_Controller->m_btnReloadTextures, SIGNAL(clicked(bool)), m_RenderWidget, SLOT(reloadTextures()));
+    connect(m_Controller->m_btnExportImage,    SIGNAL(clicked(bool)), m_RenderWidget, SLOT(saveRenderImage()));
     connect(m_Controller->m_btnReloadTextures, SIGNAL(clicked(bool)), m_Controller,   SLOT(loadTextures()));
-//    connect(m_Controller->m_btnPause,          SIGNAL(clicked(bool)), m_DataReader.get(), SLOT(pause(bool)));
 
 //    connect(m_InputPath,                       SIGNAL(pathChanged(QString)), this,           SLOT(loadDataInfo(QString)));
 

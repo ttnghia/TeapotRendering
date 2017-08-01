@@ -21,6 +21,9 @@
 RenderWidget::RenderWidget(QWidget* parent) : OpenGLWidget(parent)
 {
     m_DefaultSize = QSize(1200, 1000);
+    m_Camera->setTranslationLag(0.7);
+    m_Camera->setRotationLag(0.7);
+    m_Camera->setZoomingLag(0.7);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -42,7 +45,11 @@ void RenderWidget::initOpenGL()
 //    m_GroundRender = std::make_unique<PlaneRender>(m_Camera, m_Lights, QDir::currentPath() + "/Textures/Floor/", m_UBufferCamData);
     m_ScreenQuadTexRender = std::make_unique<ScreenQuadTextureRender>();
 
+    m_GroundTexFile = getTextureFilePaths("Floor");
+    m_SkyTexFile    = getTextureFilePaths("Sky");
+
     initRayTracer();
+    initCaptureDir();
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -61,6 +68,12 @@ void RenderWidget::renderOpenGL()
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void RenderWidget::resetCamera()
+{
+    m_Camera->reset();
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void RenderWidget::updateLights()
 {
     m_RayTracer->setLights(m_Lights);
@@ -69,16 +82,22 @@ void RenderWidget::updateLights()
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void RenderWidget::setSkyBoxTexture(int texIndex)
 {
-//    m_SkyBoxRender->setRenderTextureIndex(texIndex);
+    if(texIndex > 0)
+        m_RayTracer->setSkyTexture(m_SkyTexFile[texIndex - 1]);
+    else
+        m_RayTracer->setSkyTexture(QString(""));
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void RenderWidget::setFloorTexture(int texIndex)
 {
-//    Q_ASSERT(m_FloorRender != nullptr);
-//    m_FloorRender->setRenderTextureIndex(texIndex);
+    if(texIndex > 0)
+        m_RayTracer->setGroundTexture(m_GroundTexFile[texIndex - 1]);
+    else
+        m_RayTracer->setGroundTexture(QString(""));
 }
 
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void RenderWidget::setFloorSize(int size)
 {
 //    m_FloorRender->transform(glm::vec3(0), glm::vec3(static_cast<float>(size)));
@@ -101,6 +120,9 @@ void RenderWidget::reloadTextures()
 //    m_FloorRender->clearTextures();
 //    m_FloorRender->loadTextures(QDir::currentPath() + "/Textures/Floor/");
 //    doneCurrent();
+    m_GroundTexFile = getTextureFilePaths("Floor");
+    m_SkyTexFile    = getTextureFilePaths("Sky");
+
 
     ////////////////////////////////////////////////////////////////////////////////
     EnhancedMessageBox msgBox(this);
@@ -110,7 +132,14 @@ void RenderWidget::reloadTextures()
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setAutoClose(true);
     msgBox.exec();
-//    QMessageBox::information(this, "Info", "Textures reloaded!");
+    //    QMessageBox::information(this, "Info", "Textures reloaded!");
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void RenderWidget::saveRenderImage()
+{
+    m_RayTracer->getOutputAsByteArray(m_CaptureImage->bits());
+    m_CaptureImage->save(getCaptureFilePath(getLastCaptureIdx()));
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -118,6 +147,7 @@ void RenderWidget::setMeshMaterial(const Material::MaterialData& material, int m
 {
 //    m_MeshRenders[meshID]->getMaterial()->setMaterial(material);
 //    m_MeshRenders[meshID]->getMaterial()->uploadDataToGPU();
+    m_RayTracer->setGlassMaterial(glm::vec3(material.diffuse));
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -149,4 +179,33 @@ void RenderWidget::renderRayTracingBuffer()
     m_ScreenQuadTexRender->render();
     if(m_bUseSRGB)
         glDisable(GL_FRAMEBUFFER_SRGB_EXT);
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void RenderWidget::initCaptureDir()
+{
+    QString capturePath = QDir::currentPath() + QString("/Capture/");
+    setCapturePath(capturePath);
+
+    if(!QDir(capturePath).exists())
+        QDir().mkdir(capturePath);
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+int RenderWidget::getLastCaptureIdx()
+{
+    int idx = 1;
+    for(; idx < 1000000; ++idx)
+    {
+        if(!QFile::exists(getCaptureFilePath(idx)))
+            break;
+    }
+
+    return idx;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+QString RenderWidget::getCaptureFilePath(int frame)
+{
+    return m_CapturePath + QString("/frame.%1.jpg").arg(frame, 4, 10, QChar('0'));
 }
