@@ -42,12 +42,13 @@ void RenderWidget::initOpenGL()
     // textures
     m_RenderTexture = std::make_shared<OpenGLTexture>(GL_TEXTURE_2D);
     m_RenderTexture->setSimplestTexture();
-//    m_GroundRender = std::make_unique<PlaneRender>(m_Camera, m_Lights, QDir::currentPath() + "/Textures/Floor/", m_UBufferCamData);
     m_ScreenQuadTexRender = std::make_unique<ScreenQuadTextureRender>();
 
-    m_GroundTexFile = getTextureFilePaths("Floor");
-    m_SkyTexFile    = getTextureFilePaths("Sky");
+    m_FloorTexFile = getTextureFilePaths("Floor");
+    m_SkyTexFile   = getTextureFilePaths("Sky");
 
+    ////////////////////////////////////////////////////////////////////////////////
+    // ray tracing engine
     initRayTracer();
     initCaptureDir();
 }
@@ -92,37 +93,28 @@ void RenderWidget::setSkyBoxTexture(int texIndex)
 void RenderWidget::setFloorTexture(int texIndex)
 {
     if(texIndex > 0)
-        m_RayTracer->setGroundTexture(m_GroundTexFile[texIndex - 1]);
+        m_RayTracer->setFloorTexture(m_FloorTexFile[texIndex - 1]);
     else
-        m_RayTracer->setGroundTexture(QString(""));
+        m_RayTracer->setFloorTexture(QString(""));
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void RenderWidget::setFloorSize(int size)
 {
-//    m_FloorRender->transform(glm::vec3(0), glm::vec3(static_cast<float>(size)));
-//    m_FloorRender->scaleTexCoord(static_cast<float>(size), static_cast<float>(size));
+    m_RayTracer->setFloorSize(size);
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-void RenderWidget::setFloorExposure(int exposure)
+void RenderWidget::setFloorTexScale(int scale)
 {
-//    m_FloorRender->setExposure(static_cast<float>(exposure) / 100.0f);
+    float fscale = static_cast<float>(scale) / 100.0f;
+    m_RayTracer->setFloorTexScale(fscale);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void RenderWidget::reloadTextures()
 {
-//    makeCurrent();
-//    m_SkyBoxRender->clearTextures();
-//    m_SkyBoxRender->loadTextures(QDir::currentPath() + "/Textures/Sky/");
-
-//    m_FloorRender->clearTextures();
-//    m_FloorRender->loadTextures(QDir::currentPath() + "/Textures/Floor/");
-//    doneCurrent();
-    m_GroundTexFile = getTextureFilePaths("Floor");
-    m_SkyTexFile    = getTextureFilePaths("Sky");
-
+    m_FloorTexFile = getTextureFilePaths("Floor");
+    m_SkyTexFile   = getTextureFilePaths("Sky");
 
     ////////////////////////////////////////////////////////////////////////////////
     EnhancedMessageBox msgBox(this);
@@ -132,7 +124,6 @@ void RenderWidget::reloadTextures()
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setAutoClose(true);
     msgBox.exec();
-    //    QMessageBox::information(this, "Info", "Textures reloaded!");
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -145,8 +136,6 @@ void RenderWidget::saveRenderImage()
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void RenderWidget::setMeshMaterial(const Material::MaterialData& material, int meshID)
 {
-//    m_MeshRenders[meshID]->getMaterial()->setMaterial(material);
-//    m_MeshRenders[meshID]->getMaterial()->uploadDataToGPU();
     m_RayTracer->setGlassMaterial(glm::vec3(material.diffuse));
 }
 
@@ -167,7 +156,7 @@ void RenderWidget::renderRayTracingBuffer()
     Q_ASSERT(m_RayTracer != nullptr);
     Q_ASSERT(m_RenderTexture != nullptr);
 
-    // ray trace
+    // launch ray tracing engine
     m_RayTracer->render();
     m_RayTracer->getOutputAsTexture(m_RenderTexture);
 

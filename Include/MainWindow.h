@@ -21,7 +21,7 @@
 #include "Controller.h"
 
 #include <QtAppHelpers/OpenGLMainWindow.h>
-#include <QtAppHelpers/BrowsePathWidget.h>
+#include <QtAppHelpers/BusyBar.h>
 
 #include <QEvent>
 #include <memory>
@@ -39,6 +39,8 @@ protected:
     virtual bool processKeyPressEvent(QKeyEvent* event) override;
 
 public slots:
+    void updateStatusInfo(const QString& status);
+    void updateStatusMemoryUsage();
 
 private:
     void setupRenderWidgets();
@@ -46,6 +48,9 @@ private:
     void connectWidgets();
 
     ////////////////////////////////////////////////////////////////////////////////
-    RenderWidget* m_RenderWidget = nullptr;
-    Controller*   m_Controller   = nullptr;
+    RenderWidget* m_RenderWidget         = nullptr;
+    Controller*   m_Controller           = nullptr;
+    QLabel*       m_lblStatusInfo        = nullptr;
+    QLabel*       m_lblStatusMemoryUsage = nullptr;
+    BusyBar*      m_BusyBar;
 };

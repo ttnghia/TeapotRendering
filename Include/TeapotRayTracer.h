@@ -36,22 +36,25 @@ public:
     virtual void render() override;
     virtual void resizeViewport(int, int) override;
 
-    void setRenderGround(bool bGround) { m_bRenderGround = bGround; }
-    void setRenderSky(bool bSky) { m_bRenderSky = bSky; }
-    void setGroundTexture(const QString& textureFile);
+    void setFloorTexture(const QString& textureFile);
+    void setFloorSize(float size);
+    void setFloorTexScale(float scale);
     void setSkyTexture(const QString& textureFile);
     void setLights(std::shared_ptr<PointLights>& lights);
     void setGlassMaterial(const glm::vec3& transmittance);
 
 protected:
     std::string     getPtxPath(const char* cudaFile);
-    optix::Material createGroundMaterial();
+    optix::Material createFloorMaterial();
     optix::Material createGlassMaterial();
     optix::Aabb     createGeometry(const std::vector<std::string>& fileNames, const std::vector<optix::Matrix4x4>& xforms,
-                                   const optix::Material glassMaterial, const optix::Material groundMaterial,
+                                   const optix::Material glassMaterial, const optix::Material floorMaterial,
                                    // output: this is a Group with two GeometryGroup children, for toggling visibility later
                                    optix::Group& topGroup);
 
+    optix::GeometryInstance createFloorGeometry(const std::string& ptxFile, const optix::Aabb& aabb, optix::Material material, float scale);
+
     ////////////////////////////////////////////////////////////////////////////////
     optix::Group m_GeometryGroup;
+    float        m_FloorTexScale = 0.05;
 };

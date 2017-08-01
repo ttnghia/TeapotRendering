@@ -88,9 +88,9 @@ void TeapotRayTracer::resizeViewport(int width, int height)
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-void TeapotRayTracer::setGroundTexture(const QString& textureFile)
+void TeapotRayTracer::setFloorTexture(const QString& textureFile)
 {
-    if(m_bRenderGround && !textureFile.isEmpty())
+    if(!textureFile.isEmpty())
     {
         m_OptiXContext["top_object"]->set(m_GeometryGroup);
     }
@@ -101,23 +101,33 @@ void TeapotRayTracer::setGroundTexture(const QString& textureFile)
         m_OptiXContext["top_object"]->set(geomGroup);
     }
 
-
     auto material = m_Materials["ground_material"];
     Q_ASSERT(material != 0);
-//    const QString full_path = QString::fromStdString(sutil::samplesDir()) + "/data/CedarCity.hdr";
-
-//    const QString full_path = "D:/Programming/QtApps/TeapotRendering/Textures/Floor/blue_marble.png";
-//    const std::string texture_filename = full_path;
-
-
-//    material["Kd_map"]->setTextureSampler(sutil::loadTexture(m_OptiXContext, texture_filename, optix::make_float3(1.0f)));
-
-
 
     material["Kd_map"]->setTextureSampler(createTexSampler(textureFile.toStdString()));
-    material["Kd_map_scale"]->setFloat(optix::make_float2(0.05f, 0.05f));
+    material["Kd_map_scale"]->setFloat(optix::make_float2(m_FloorTexScale, m_FloorTexScale));
+    m_FrameNumber = 0;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::setFloorSize(float size)
+{
+    optix::GeometryInstance plane = m_Geometry["ground"];
+    plane["v1"]->setFloat(optix::make_float3(0.0f, 0.0f, 1000.0f));
+    plane["v2"]->setFloat(optix::make_float3(1000.0f, 0.0f, 0.0f));
 
     m_FrameNumber = 0;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void TeapotRayTracer::setFloorTexScale(float scale)
+{
+    auto material = m_Materials["ground_material"];
+    Q_ASSERT(material != 0);
+
+    material["Kd_map_scale"]->setFloat(optix::make_float2(scale, scale));
+    m_FrameNumber   = 0;
+    m_FloorTexScale = scale;
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -182,7 +192,7 @@ void TeapotRayTracer::createScene()
 #endif
 
     ////////////////////////////////////////////////////////////////////////////////
-    optix::Material   groundMaterial = createGroundMaterial();
+    optix::Material   groundMaterial = createFloorMaterial();
     optix::Material   glassMaterial  = createGlassMaterial();
     const optix::Aabb aabb           = createGeometry(meshFiles, meshXforms, glassMaterial, groundMaterial, m_GeometryGroup);
 
@@ -200,7 +210,7 @@ std::string TeapotRayTracer::getPtxPath(const char* cudaFile)
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-optix::Material TeapotRayTracer::createGroundMaterial()
+optix::Material TeapotRayTracer::createFloorMaterial()
 {
     std::string    ptxPath(getPtxPath("Diffuse.cu"));
     optix::Program ch_program = m_OptiXContext->createProgramFromPTXFile(ptxPath, "closest_hit_radiance");
@@ -208,9 +218,7 @@ optix::Material TeapotRayTracer::createGroundMaterial()
     optix::Material material = m_OptiXContext->createMaterial();
     material->setClosestHitProgram(0, ch_program);
 
-    const std::string texture_filename = std::string(sutil::samplesDir()) + "/data/grid.ppm";
-    material["Kd_map"]->setTextureSampler(sutil::loadTexture(m_OptiXContext, texture_filename, optix::make_float3(1.0f)));
-
+    material["Kd_map"]->setTextureSampler(getDummyTexSampler());
     material["Kd_map_scale"]->setFloat(optix::make_float2(0.05f, 0.05f));
     m_Materials["ground_material"] = material;
 
@@ -242,16 +250,13 @@ optix::Material TeapotRayTracer::createGlassMaterial()
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-optix::GeometryInstance createOptiXGroundPlane(optix::Context     context,
-                                               const std::string& parallelogram_ptx,
-                                               const optix::Aabb& aabb,
-                                               optix::Material    material,
-                                               float              scale)
+optix::GeometryInstance TeapotRayTracer::createFloorGeometry(const std::string& ptxFile, const optix::Aabb& aabb, optix::Material material, float scale)
 {
-    optix::Geometry parallelogram = context->createGeometry();
+    optix::Geometry parallelogram = m_OptiXContext->createGeometry();
     parallelogram->setPrimitiveCount(1u);
-    parallelogram->setBoundingBoxProgram(context->createProgramFromPTXFile(parallelogram_ptx, "bounds"));
-    parallelogram->setIntersectionProgram(context->createProgramFromPTXFile(parallelogram_ptx, "intersect"));
+    parallelogram->setBoundingBoxProgram(m_OptiXContext->createProgramFromPTXFile(ptxFile, "bounds"));
+    parallelogram->setIntersectionProgram(m_OptiXContext->createProgramFromPTXFile(ptxFile, "intersect"));
+
     const float         extent = scale * fmaxf(aabb.extent(0), aabb.extent(2));
     const optix::float3 anchor = optix::make_float3(aabb.center(0) - 0.5f * extent, aabb.m_min.y - 0.001f * aabb.extent(1), aabb.center(2) - 0.5f * extent);
     optix::float3       v1     = optix::make_float3(0.0f, 0.0f, extent);
@@ -260,30 +265,31 @@ optix::GeometryInstance createOptiXGroundPlane(optix::Context     context,
     float               d      = optix::dot(normal, anchor);
     v1 *= 1.0f / optix::dot(v1, v1);
     v2 *= 1.0f / optix::dot(v2, v2);
+
     optix::float4 plane = optix::make_float4(normal, d);
     parallelogram["plane"]->setFloat(plane);
     parallelogram["v1"]->setFloat(v1);
     parallelogram["v2"]->setFloat(v2);
     parallelogram["anchor"]->setFloat(anchor);
 
-    optix::GeometryInstance instance = context->createGeometryInstance(parallelogram, &material, &material + 1);
+    optix::GeometryInstance instance = m_OptiXContext->createGeometryInstance(parallelogram, &material, &material + 1);
+    m_Geometry["ground"] = instance;
+
     return instance;
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 optix::Aabb TeapotRayTracer::createGeometry(const std::vector<std::string>& fileNames, const std::vector<optix::Matrix4x4>& xforms,
-                                            const optix::Material glassMaterial, const optix::Material groundMaterial,
+                                            const optix::Material glassMaterial, const optix::Material floorMaterial,
                                             optix::Group& topGroup)
 {
     const std::string ptxPath = getPtxPath("TriangleMesh.cu");
-
     topGroup = m_OptiXContext->createGroup();
     topGroup->setAcceleration(m_OptiXContext->createAcceleration("Trbvh"));
 
-    int         num_triangles = 0;
+    int         numTriangles = 0;
     optix::Aabb aabb;
 
-#if 1
     {
         optix::GeometryGroup geometry_group = m_OptiXContext->createGeometryGroup();
         geometry_group->setAcceleration(m_OptiXContext->createAcceleration("Trbvh"));
@@ -304,9 +310,9 @@ optix::Aabb TeapotRayTracer::createGeometry(const std::vector<std::string>& file
             aabb.include(mesh.bbox_min, mesh.bbox_max);
 
             std::cerr << fileNames[i] << ": " << mesh.num_triangles << std::endl;
-            num_triangles += mesh.num_triangles;
+            numTriangles += mesh.num_triangles;
         }
-        std::cerr << "Total triangle count: " << num_triangles << std::endl;
+        std::cerr << "Total triangle count: " << numTriangles << std::endl;
     }
 
 
@@ -316,10 +322,10 @@ optix::Aabb TeapotRayTracer::createGeometry(const std::vector<std::string>& file
         geometry_group->setAcceleration(m_OptiXContext->createAcceleration("NoAccel"));
         topGroup->addChild(geometry_group);
         const std::string       floor_ptx = getPtxPath("ParallelogramIterative.cu");
-        optix::GeometryInstance instance  = createOptiXGroundPlane(m_OptiXContext, floor_ptx, aabb, groundMaterial, 3.0f);
+        optix::GeometryInstance instance  = createFloorGeometry(floor_ptx, aabb, floorMaterial, 3.0f);
         geometry_group->addChild(instance);
     }
-#endif
+
     m_OptiXContext["top_object"]->set(topGroup);
 
     return aabb;

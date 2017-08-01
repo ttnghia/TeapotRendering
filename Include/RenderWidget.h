@@ -59,7 +59,7 @@ public slots:
     void setSkyBoxTexture(int texIndex);
     void setFloorTexture(int texIndex);
     void setFloorSize(int size);
-    void setFloorExposure(int exposure);
+    void setFloorTexScale(int scale);
     void setMeshMaterial(const Material::MaterialData& material, int meshID);
     void reloadTextures();
     void saveRenderImage();
@@ -75,17 +75,11 @@ private:
     QString getCaptureFilePath(int frame);
 
     ////////////////////////////////////////////////////////////////////////////////
-    GLboolean                    m_bUseSRGB = GL_FALSE;
-    std::shared_ptr<PointLights> m_Lights   = nullptr;
-
+    GLboolean   m_bUseSRGB = GL_FALSE;
     QStringList m_SkyTexFile;
-    QStringList m_GroundTexFile;
-//    std::vector<std::shared_ptr<OpenGLTexture> > m_SkyTex;
+    QStringList m_FloorTexFile;
 
-//    std::unique_ptr<SkyBoxRender>       m_SkyBoxRender       = nullptr;
-//    std::unique_ptr<PlaneRender>        m_FloorRender        = nullptr;
-//    std::unique_ptr<PointLightRender>   m_LightRender        = nullptr;
-//    std::unique_ptr<WireFrameBoxRender> m_WireFrameBoxRender = nullptr;
+    std::shared_ptr<PointLights>             m_Lights              = nullptr;
     std::shared_ptr<OpenGLTexture>           m_RenderTexture       = nullptr;
     std::unique_ptr<ScreenQuadTextureRender> m_ScreenQuadTexRender = nullptr;
     std::unique_ptr<TeapotRayTracer>         m_RayTracer           = nullptr;

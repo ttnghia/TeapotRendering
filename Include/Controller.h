@@ -50,6 +50,7 @@ private:
     EnhancedComboBox* m_cbSkyTexture;
     EnhancedComboBox* m_cbFloorTexture;
     EnhancedSlider*   m_sldFloorSize;
+    EnhancedSlider*   m_sldFloorTexScale;
     EnhancedSlider*   m_sldFloorExposure;
 
     MaterialSelector* m_msMeshMaterial;

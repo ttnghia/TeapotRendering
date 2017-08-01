@@ -16,9 +16,12 @@
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 #include <QMouseEvent>
-#include <Banana/NumberHelpers.h>
-#include <Banana/Macros.h>
+
 #include "MainWindow.h"
+
+#include <Banana/NumberHelpers.h>
+#include <Banana/System/MemoryUsage.h>
+#include <Banana/Macros.h>
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 MainWindow::MainWindow(QWidget* parent) : OpenGLMainWindow(parent)
@@ -66,6 +69,17 @@ bool MainWindow::processKeyPressEvent(QKeyEvent* event)
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+void MainWindow::updateStatusInfo(const QString& status)
+{
+    m_lblStatusInfo->setText(status);
+}
+
+void MainWindow::updateStatusMemoryUsage()
+{
+    m_lblStatusMemoryUsage->setText(QString("Host memory usage: %1 (MBs)").arg(QString::fromStdString(NumberHelpers::formatWithCommas(getCurrentRSS() / 1048576.0))));
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void MainWindow::setupRenderWidgets()
 {
     ////////////////////////////////////////////////////////////////////////////////
@@ -87,9 +101,25 @@ void MainWindow::setupRenderWidgets()
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 void MainWindow::setupStatusBar()
 {
-//    m_lblStatusReadInfo = new QLabel(this);
-//    m_lblStatusReadInfo->setMargin(5);
-//    statusBar()->addPermanentWidget(m_lblStatusReadInfo, 1);
+    m_lblStatusInfo = new QLabel(this);
+    m_lblStatusInfo->setMargin(5);
+    m_lblStatusInfo->setText("Rendering...");
+    statusBar()->addPermanentWidget(m_lblStatusInfo, 2);
+
+    m_lblStatusMemoryUsage = new QLabel(this);
+    m_lblStatusMemoryUsage->setMargin(5);
+    statusBar()->addPermanentWidget(m_lblStatusMemoryUsage, 1);
+
+    QTimer* memTimer = new QTimer(this);
+    connect(memTimer, &QTimer::timeout, [&]
+    {
+        updateStatusMemoryUsage();
+    });
+    memTimer->start(5000);
+
+    m_BusyBar = new BusyBar(this, BusyBar::Cycle, 20);
+    statusBar()->addPermanentWidget(m_BusyBar);
+    m_BusyBar->setBusy(true);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -100,7 +130,7 @@ void MainWindow::connectWidgets()
     connect(m_Controller->m_cbSkyTexture->getComboBox(),   SIGNAL(currentIndexChanged(int)),   m_RenderWidget, SLOT(setSkyBoxTexture(int)));
     connect(m_Controller->m_cbFloorTexture->getComboBox(), SIGNAL(currentIndexChanged(int)),   m_RenderWidget, SLOT(setFloorTexture(int)));
     connect(m_Controller->m_sldFloorSize->getSlider(),     SIGNAL(valueChanged(int)),          m_RenderWidget, SLOT(setFloorSize(int)));
-    connect(m_Controller->m_sldFloorExposure->getSlider(), SIGNAL(valueChanged(int)),          m_RenderWidget, SLOT(setFloorExposure(int)));
+    connect(m_Controller->m_sldFloorTexScale->getSlider(), SIGNAL(valueChanged(int)),          m_RenderWidget, SLOT(setFloorTexScale(int)));
 
     connect(m_Controller->m_msMeshMaterial,                &MaterialSelector::materialChanged, [&](const Material::MaterialData& material)
             {
@@ -113,8 +143,6 @@ void MainWindow::connectWidgets()
     connect(m_Controller->m_btnReloadTextures, SIGNAL(clicked(bool)), m_RenderWidget, SLOT(reloadTextures()));
     connect(m_Controller->m_btnExportImage,    SIGNAL(clicked(bool)), m_RenderWidget, SLOT(saveRenderImage()));
     connect(m_Controller->m_btnReloadTextures, SIGNAL(clicked(bool)), m_Controller,   SLOT(loadTextures()));
-
-//    connect(m_InputPath,                       SIGNAL(pathChanged(QString)), this,           SLOT(loadDataInfo(QString)));
 
     ////////////////////////////////////////////////////////////////////////////////
     // lights

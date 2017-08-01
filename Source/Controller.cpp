@@ -71,7 +71,7 @@ void Controller::loadTextures()
 
     ////////////////////////////////////////////////////////////////////////////////
     // floor textures
-//    int currentFloorTexID = m_cbFloorTexture->getComboBox()->currentIndex();
+    int currentFloorTexID = m_cbFloorTexture->getComboBox()->currentIndex();
     m_cbFloorTexture->getComboBox()->clear();
     QStringList floorTexFolders = getTextureFiles("Floor");
     m_cbFloorTexture->getComboBox()->addItem("None");
@@ -81,8 +81,7 @@ void Controller::loadTextures()
         m_cbFloorTexture->getComboBox()->addItem(tex);
     }
 
-    m_cbFloorTexture->setCurrentIndex(1);
-//    m_cbFloorTexture->setCurrentIndex(currentFloorTexID > 0 ? currentFloorTexID : 0);
+    m_cbFloorTexture->setCurrentIndex(currentFloorTexID > 0 ? currentFloorTexID : 0);
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -99,14 +98,21 @@ void Controller::setupTextureControllers(QBoxLayout* ctrLayout)
 
     m_sldFloorSize = new EnhancedSlider;
     m_sldFloorSize->setRange(1, 100);
-    m_sldFloorSize->getSlider()->setValue(10);
+    m_sldFloorSize->setValue(10);
     QHBoxLayout* floorSizeLayout = new QHBoxLayout;
     floorSizeLayout->addWidget(new QLabel("Size:"), 1);
     floorSizeLayout->addLayout(m_sldFloorSize->getLayout(), 5);
 
+    m_sldFloorTexScale = new EnhancedSlider;
+    m_sldFloorTexScale->setRange(1, 100);
+    m_sldFloorTexScale->setValue(5);
+    QHBoxLayout* floorTexScaleLayout = new QHBoxLayout;
+    floorTexScaleLayout->addWidget(new QLabel("TexScale:"), 1);
+    floorTexScaleLayout->addLayout(m_sldFloorTexScale->getLayout(), 5);
+
     m_sldFloorExposure = new EnhancedSlider;
     m_sldFloorExposure->setRange(0, 100);
-    m_sldFloorExposure->getSlider()->setValue(50);
+    m_sldFloorExposure->setValue(50);
     QHBoxLayout* floorExposureLayout = new QHBoxLayout;
     floorExposureLayout->addWidget(new QLabel("Exposure:"), 1);
     floorExposureLayout->addLayout(m_sldFloorExposure->getLayout(), 5);
@@ -120,6 +126,7 @@ void Controller::setupTextureControllers(QBoxLayout* ctrLayout)
     floorLayout->addSpacing(10);
     floorLayout->addWidget(line);
     floorLayout->addLayout(floorSizeLayout);
+    floorLayout->addLayout(floorTexScaleLayout);
     floorLayout->addLayout(floorExposureLayout);
 
     QGroupBox* floorGroup = new QGroupBox;
