@@ -1,8 +1,6 @@
 * linguist-vendored
 
 *.h linguist-vendored=false
-*.hpp linguist-vendored=false
-*.cuh linguist-vendored=false
+*.hpp linguist-vendored=fals
 
-*.cu linguist-vendored=false
 *.cpp linguist-vendored=false
